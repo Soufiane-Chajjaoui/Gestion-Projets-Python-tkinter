@@ -1,32 +1,29 @@
-import os
 import csv
 
 class CSVHelper:
-    
-    @staticmethod
-    def ecrire_csv(fichier, data, entetes=None):
-        """
-        Écrit des données dans un fichier CSV avec option pour ajouter des en-têtes.
-
-        :param fichier: Chemin du fichier CSV.
-        :param data: Données à écrire (liste de listes).
-        :param entetes: Liste des noms de colonnes (en-têtes).
-        """
-        # S'assurer que le dossier contenant le fichier existe
-        os.makedirs(os.path.dirname(fichier), exist_ok=True)
-
-        with open(fichier, mode='w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            if entetes:  # Écrire les en-têtes si fournis
-                writer.writerow(entetes)
-            writer.writerows(data)
-
     @staticmethod
     def lire_csv(fichier):
-        """Lit un fichier CSV et retourne les lignes."""
-        try:
-            with open(fichier, mode='r', newline='', encoding='utf-8') as f:
-                reader = csv.reader(f)
-                return list(reader)
-        except FileNotFoundError:
-            return []
+        """
+        Lit un fichier CSV et retourne une liste de dictionnaires si le fichier a des en-têtes.
+        """
+        with open(fichier, mode='r', encoding='utf-8') as f:
+            lecteur = csv.DictReader(f)
+            return list(lecteur)
+
+    @staticmethod
+    def ecrire_csv(fichier, lignes, entetes=None):
+        """
+        Écrit dans un fichier CSV à partir d'une liste de dictionnaires.
+
+        Args:
+            fichier (str): Le chemin du fichier CSV.
+            lignes (list): Liste de dictionnaires représentant les lignes.
+            entetes (list): Liste des en-têtes à écrire dans le fichier.
+        """
+        with open(fichier, mode='w', newline='', encoding='utf-8') as f:
+            if entetes:  # Vérifiez si des en-têtes sont fournis
+                writer = csv.DictWriter(f, fieldnames=entetes)
+                writer.writeheader()  # Écrit les en-têtes dans le fichier
+            else:
+                writer = csv.writer(f)
+            writer.writerows(lignes)

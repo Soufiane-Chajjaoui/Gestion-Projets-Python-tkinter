@@ -1,53 +1,49 @@
-from datetime import datetime
-
+import uuid
+import time
 class User:
     """
-    Classe représentant un utilisateur avec un ID, un nom, un email et un rôle.
+    Modèle représentant un utilisateur.
     """
 
-    def __init__(self, nom, email, role, user_id=None):
+    def __init__(self, id=None, nom="", email="", role=""):
         """
-        Initialise un utilisateur.
+        Initialise un objet User.
 
         Args:
-            nom (str): Nom de l'utilisateur.
-            email (str): Email de l'utilisateur.
-            role (str): Rôle de l'utilisateur.
-            user_id (str, optional): Identifiant unique de l'utilisateur. Généré automatiquement si non fourni.
+            id (str | int, optional): L'identifiant unique de l'utilisateur. 
+                                      Si aucun ID n'est fourni, un DateTime.now() est généré automatiquement.
+            nom (str): Le nom de l'utilisateur.
+            email (str): L'email de l'utilisateur.
+            role (str): Le rôle de l'utilisateur.
         """
-        self.id = user_id or self.generer_id_unique()
+        self.id = id if id else int(time.time() * 1000)  # Génère un UUID si aucun ID n'est fourni
         self.nom = nom
         self.email = email
         self.role = role
 
-    @staticmethod
-    def generer_id_unique():
+    def to_dict(self):
         """
-        Génère un ID unique basé sur la date et l'heure actuelle.
+        Convertit l'objet User en dictionnaire.
 
         Returns:
-            str: Identifiant unique sous la forme 'YYYYMMDDHHMMSSffffff'.
+            dict: Représentation de l'utilisateur sous forme de dictionnaire.
         """
-        return datetime.now().strftime('%Y%m%d%H%M%S%f')
+        return {"id": self.id, "nom": self.nom, "email": self.email, "role": self.role}
 
-    def to_csv_row(self):
+    @classmethod
+    def from_dict(cls, data):
         """
-        Convertit l'utilisateur en une liste pour l'écriture dans un fichier CSV.
-
-        Returns:
-            list: Liste représentant l'utilisateur.
-        """
-        return [self.id, self.nom, self.email, self.role]
-
-    @staticmethod
-    def from_csv_row(row):
-        """
-        Crée un utilisateur à partir d'une ligne CSV.
+        Crée un objet User à partir d'un dictionnaire.
 
         Args:
-            row (list): Liste représentant une ligne dans un fichier CSV.
+            data (dict): Les données du dictionnaire.
 
         Returns:
-            User: Instance d'utilisateur créée à partir de la ligne.
+            User: L'objet User créé.
         """
-        return User(user_id=row[0], nom=row[1], email=row[2], role=row[3])
+        return cls(
+            id=data.get("id"),  # Utilise l'ID fourni ou None
+            nom=data.get("nom", ""),
+            email=data.get("email", ""),
+            role=data.get("role", "")
+        )
