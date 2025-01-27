@@ -1,7 +1,7 @@
 from utils.json_helper import JSONHelper
 from models.projet import Projet
 
-class ProjetService:
+class ProjectService:
     """
     Service pour gérer les opérations sur les projets, comme l'ajout, 
     la suppression et la lecture à partir d'un fichier JSON.
