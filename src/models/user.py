@@ -1,5 +1,5 @@
-import uuid
 import time
+
 class User:
     """
     Modèle représentant un utilisateur.
