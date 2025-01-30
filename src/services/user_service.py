@@ -28,7 +28,7 @@ class UserService:
             None
         """
         self.users.append(user.to_dict())
-        self.sauvegarder_users()
+        self.save_users()
 
     def lister_users(self):
         """
@@ -39,7 +39,7 @@ class UserService:
         """
         return [User.from_dict(user_data) for user_data in self.users]
 
-    def sauvegarder_users(self):
+    def save_users(self):
         """
         Sauvegarde la liste actuelle des utilisateurs dans le fichier JSON.
 
@@ -61,6 +61,9 @@ class UserService:
         users_avant = len(self.users)
         self.users = [user for user in self.users if user["id"] != user_id]
         if len(self.users) < users_avant:
-            self.sauvegarder_users()
+            self.save_users()
             return True
         return False
+    def get_users(self, users_ids):
+        users = filter(lambda x: x["id"] in users_ids , self.users)
+        return [User.from_dict(user) for user in users]

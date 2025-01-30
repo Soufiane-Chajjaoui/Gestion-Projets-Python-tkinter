@@ -1,79 +1,141 @@
+from PIL import Image, ImageTk  # Pour gérer les icônes
+from services.project_service import ProjectService
+from gui.widgets.user_widget import UserWidget
+from gui.widgets.field_form_widget import FieldFormWidget
+from models.user import User
 import customtkinter as ctk
 
 class UserFormWidget(ctk.CTkToplevel):
     def __init__(self, parent, projectWidget, add_user_callback):
-        """
-        Initialise le formulaire d'ajout d'utilisateur.
-
-        Args:
-            parent: La fenêtre parente.
-            projectWidget: Le widget du projet associé.
-            add_user_callback: La fonction de rappel pour ajouter un utilisateur.
-        """
         super().__init__(parent)
         self.projectWidget = projectWidget
         self.add_user_callback = add_user_callback
-
         # Configuration de la fenêtre
-        self.title("Ajouter un utilisateur")
-        self.geometry("400x400")  # Ajuster les dimensions pour inclure le champ du rôle
+        self.title("Gestion des Utilisateurs")
+        self.geometry("800x500")
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
 
-        # Ajouter un label pour afficher le nom du projet associé
-        project_label = ctk.CTkLabel(
-            self,
-            text=f"Projet associé : {self.projectWidget.project_name}",
-            font=("Arial", 14, "bold"),
-            text_color="#333"
-        )
-        project_label.pack(pady=(20, 10))  # Espacement en haut et en bas
+        self.projectService = ProjectService()
+        self.users_widgets = []
+        self.users = []
+        # Charger les icônes nécessaires
+        self.delete_icon = ctk.CTkImage(light_image=Image.open("D:/Dev/Gestion-Projets-Python-tkinter/assets/trash-icon.png"), size=(20, 20))
+        self.task_icon = ctk.CTkImage(light_image=Image.open("D:/Dev/Gestion-Projets-Python-tkinter/assets/task-icon.png"), size=(20, 20))
 
-        # Ajouter les champs du formulaire
-        label_name = ctk.CTkLabel(self, text="Nom de l'utilisateur :", font=("Arial", 12))
-        label_name.pack(pady=(10, 5))
-        self.entry_name = ctk.CTkEntry(self, width=300)
-        self.entry_name.pack(pady=5)
+        # Panneau de gauche pour la liste des utilisateurs
+        self.create_user_list_panel()
 
-        label_email = ctk.CTkLabel(self, text="Email de l'utilisateur :", font=("Arial", 12))
-        label_email.pack(pady=5)
-        self.entry_email = ctk.CTkEntry(self, width=300)
-        self.entry_email.pack(pady=5)
+        # Panneau de droite pour le formulaire
+        self.create_form_panel()
 
-        # Ajouter un champ pour le rôle de l'utilisateur
-        label_role = ctk.CTkLabel(self, text="Rôle de l'utilisateur :", font=("Arial", 12))
-        label_role.pack(pady=5)
-        self.entry_role = ctk.CTkEntry(self, width=300)
-        self.entry_role.pack(pady=5)
+    def create_user_list_panel(self):
+        # Cadre pour la liste des utilisateurs
+        list_frame = ctk.CTkFrame(self, width=300)
+        list_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        
+        # Titre de la liste
+        ctk.CTkLabel(list_frame, 
+                    text=f"Utilisateurs du Projet\n{self.projectWidget.project_name}",
+                    font=("Arial", 14, "bold")).pack(pady=10)
 
-        # Ajouter un bouton pour valider l'ajout
+        # Liste scrollable des utilisateurs
+        self.scrollable_list = ctk.CTkScrollableFrame(list_frame)
+        self.scrollable_list.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # Charger les utilisateurs existants
+        self.list_users()
+
+    def list_users(self):
+        """Affiche la liste des utilisateurs avec le widget personnalisé"""
+        users = self.projectService.getUsersOfProject(self.projectWidget.project_id)
+        print(len(users))
+        if not users:
+            ctk.CTkLabel(self.scrollable_list, 
+                        text="Aucun utilisateur associé à ce projet", 
+                        text_color="gray").pack(pady=10)
+            return
+
+        for user in users:
+            userWidget = UserWidget(
+                parent=self.scrollable_list,
+                user=user,
+                delete_icon=self.delete_icon,
+                task_icon=self.task_icon,
+                delete_callback=self.delete_user
+            )
+            userWidget.pack(fill="x", pady=2, padx=5)
+            self.users_widgets.append(
+                userWidget
+            )
+
+    def create_form_panel(self):
+        form_frame = ctk.CTkFrame(self)
+        form_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
+        
+        ctk.CTkLabel(form_frame, 
+                    text="Ajouter un Utilisateur",
+                    font=("Arial", 16, "bold")).pack(pady=20)
+
+        # Utilisation du FieldFormWidget
+        self.field_name = FieldFormWidget(form_frame, "Nom de l'utilisateur :")
+        self.field_name.pack(pady=8, fill="x")
+        
+        self.field_email = FieldFormWidget(form_frame, "Email de l'utilisateur :")
+        self.field_email.pack(pady=8, fill="x")
+        
+        self.field_role = FieldFormWidget(form_frame, "Rôle de l'utilisateur :")
+        self.field_role.pack(pady=8, fill="x")
+
         submit_button = ctk.CTkButton(
-            self,
-            text="Ajouter",
-            command=self.on_submit
+            form_frame,
+            text="Ajouter à ce Projet",
+            command=self.on_submit,
+            fg_color="#4CAF50",
+            hover_color="#45a049"
         )
         submit_button.pack(pady=20)
 
     def on_submit(self):
-        """
-        Appelé lorsque le bouton 'Ajouter' est cliqué.
-        """
-        name = self.entry_name.get()
-        email = self.entry_email.get()
-        role = self.entry_role.get()  # Récupérer le rôle
+        name = self.field_name.get_value()
+        email = self.field_email.get_value()
+        role = self.field_role.get_value()
 
-        if name and email and role:  # Vérifier que tous les champs sont remplis
-            # Appeler la fonction de rappel pour ajouter l'utilisateur
-            self.add_user_callback(self.projectWidget, name, email, role, self)
+        if all([name, email, role]):
+            print(name)
+            # breakpoint()
+            self.add_user_callback(self.projectWidget,User(nom=name,email=email,role=role))
+            userWidget = UserWidget(
+                parent=self.scrollable_list,
+                user=User(nom=name, email=email,role=role),
+                delete_icon=self.delete_icon,
+                task_icon=self.task_icon,
+                delete_callback=self.delete_user
+            )
+            print(user.nom)
+            self.users_widgets.append(
+                userWidget
+            )
+            userWidget.pack(fill="x", pady=2, padx=5)
         else:
-            # Afficher un message d'erreur si les champs sont vides
-            self.show_error("Veuillez remplir tous les champs.")
+            self.show_snackbar("Tous les champs doivent être remplis !" , color="#FF0000")
+    def delete_user(self, userWidget):
+        # 1. Delete from backend
+        self.projectService.supprimer_user_du_projet(self.projectWidget.project_id, userWidget.user.id)
+        print(f"user {userWidget.user.id} projet {self.projectWidget.project_id}")
+        self.users_widgets.remove(userWidget)
+        userWidget.destroy()
+        if len(self.users_widgets) == 0: self.list_users()
+        self.show_snackbar("User ete bien supprimer")
+    def show_snackbar(self, message, color="#008000"):
+        
+        snackbar = ctk.CTkFrame(self, fg_color=color, corner_radius=10)  # Vert (Material Design)
+        snackbar.place(relx=0.5, rely=0.05, anchor="center")  # Position en haut, centré horizontalement
 
-    def show_error(self, message):
-        """
-        Affiche un message d'erreur dans un snackbar.
-
-        Args:
-            message (str): Le message d'erreur à afficher.
-        """
-        error_label = ctk.CTkLabel(self, text=message, text_color="red", font=("Arial", 12))
-        error_label.pack(pady=10)
-        self.after(3000, error_label.destroy)  # Masquer le message après 3 secondes
+        label = ctk.CTkLabel(snackbar, 
+                                 text=message, 
+                                 text_color="white",
+                                 font=("Arial", 12))
+        label.pack(padx=20,pady=10)
+        self.after(3000, snackbar.destroy)

@@ -1,5 +1,6 @@
 from utils.json_helper import JSONHelper
 from models.projet import Projet
+from .user_service import UserService
 
 class ProjectService:
     """
@@ -15,9 +16,10 @@ class ProjectService:
             fichier_json (str): Le chemin du fichier JSON contenant les projets.
         """
         self.fichier_json = fichier_json
-        self.projets = JSONHelper.lire_json(self.fichier_json)
+        self.projects = self.getProjects()
+        self.userService = UserService()
 
-    def ajouter_projet(self, projet):
+    def ajouter_projet(self, project):
         """
         Ajoute un nouveau projet au fichier JSON.
 
@@ -27,44 +29,45 @@ class ProjectService:
         Returns:
             None
         """
-        self.projets.append(projet.to_dict())
-        self.sauvegarder_projets()
+        self.projects.append(project)
+        self.save_projects()
 
-    def lister_projets(self):
+    def getProjects(self):
         """
         Liste tous les projets stockés.
 
         Returns:
             list[Projet]: Une liste d'objets `Projet`.
         """
-        return [Projet.from_dict(projet_data) for projet_data in self.projets]
+        return [Projet.from_dict(project_data) for project_data in JSONHelper.lire_json(self.fichier_json)]
 
-    def sauvegarder_projets(self):
+    def save_projects(self):
         """
         Sauvegarde la liste actuelle des projets dans le fichier JSON.
 
         Returns:
             None
         """
-        JSONHelper.ecrire_json(self.fichier_json, self.projets)
+        JSONHelper.ecrire_json(self.fichier_json, [p.to_dict() for p in self.projects])
 
-    def supprimer_projet(self, projet_id):
+    def supprimer_projet(self, project_id):
         """
         Supprime un projet du fichier JSON en fonction de son ID.
 
         Args:
-            projet_id (str | int): L'ID du projet à supprimer.
+            project_id (str | int): L'ID du projet à supprimer.
 
         Returns:
             bool: True si un projet a été supprimé, False sinon.
         """
-        projets_avant = len(self.projets)
-        self.projets = [projet for projet in self.projets if projet["id"] != projet_id]
-        if len(self.projets) < projets_avant:
-            self.sauvegarder_projets()
+        projects_avant = len(self.projects)
+        self.projects = [p for p in self.projects if p.id != project_id]
+        if len(self.projects) < projects_avant:
+            self.save_projects()
+            self.projects = self.getProjects()
             return True
         return False
-    def update_projet(self, projet):
+    def update_project(self, project):
         """
         Met à jour un projet existant dans le fichier JSON.
 
@@ -77,34 +80,39 @@ class ProjectService:
         Returns:
             None
         """
-        for i, p in enumerate(self.projets):
-            if p["id"] == projet.id:
-                self.projets[i] = projet.to_dict()
-                self.sauvegarder_projets()
+        for i, p in enumerate(self.projects):
+            if p.id == project.id:
+                self.projects[i] = project
+                self.save_projects()
                 return
         raise ValueError(f"Aucun projet avec l'ID {projet.id} n'a été trouvé.")
-    def ajouter_user_au_projet(self, projet_id, user_id):
+    def ajouter_user_au_projet(self, project_id, user_id):
         """
         Ajoute un utilisateur à un projet.
 
         Args:
-            projet_id (str): L'ID du projet.
+            project_id (str): L'ID du projet.
             user_id (str): L'ID de l'utilisateur.
-
-        Returns:
-            None
 
         Raises:
             ValueError: Si le projet n'est pas trouvé.
         """
-        for projet_data in self.projets:
-            if projet_data["id"] == projet_id:
-                if user_id not in projet_data["users"]:
-                    projet_data["users"].append(user_id)
-                    self.sauvegarder_projets()
-                return
-        raise ValueError(f"Aucun projet avec l'ID {projet_id} n'a été trouvé.")
-    def supprimer_user_du_projet(self, projet_id, user_id):
+        projects = self.getProjects()
+        print(f"Projets récupérés : {[p.id for p in projects]}")  # Debug
+
+        for p in projects:
+            if p.id == project_id:
+                if user_id not in p.users:
+                    print(f"Users avant ajout : {p.users}")  # Debug
+                    p.users.append(user_id)
+                    print(f"Users après ajout : {p.users}")  # Debug
+                    # Mettre à jour le projet dans la liste principale
+                    self.update_project(p)
+                    return
+
+        raise ValueError(f"Aucun projet avec l'ID {project_id} n'a été trouvé.")  # Exception levée après la boucle
+
+    def supprimer_user_du_projet(self, project_id, user_id):
         """
         Supprime un utilisateur d'un projet.
 
@@ -118,12 +126,24 @@ class ProjectService:
         Raises:
             ValueError: Si le projet n'est pas trouvé.
         """
-        for projet_data in self.projets:
-            if projet_data["id"] == projet_id:
-                if user_id in projet_data["users"]:
-                    projet_data["users"].remove(user_id)
-                    self.sauvegarder_projets()
-                    return True
-                else:
-                    raise ValueError(f"L'utilisateur avec l'ID {user_id} n'est pas associé au projet.")
-        raise ValueError(f"Aucun projet avec l'ID {projet_id} n'a été trouvé.")
+        if (p := self.getProject(project_id)):
+            if user_id in p.users:
+                p.users.remove(user_id)
+                self.update_project(p)
+                return True
+            else:
+                raise ValueError(f"L'utilisateur avec l'ID {user_id} n'est pas associé au projet.")
+        raise ValueError(f"Aucun projet avec l'ID {project_id} n'a été trouvé.")
+    def getUsersOfProject(self, project_id):
+        # Récupérer les IDs utilisateurs du projet
+        self.getProjects()
+        project = self.getProject(project_id)
+        if project:
+            user_ids = project.users
+            return self.userService.get_users(user_ids)
+        return [] 
+        
+    def getProject(self, project_id):
+        # Corriger le filtre et vérifier la structure des données
+        projects = list(filter(lambda x: x.id == project_id, self.getProjects()))
+        return projects[0] if projects else None

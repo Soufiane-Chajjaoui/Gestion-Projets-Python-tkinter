@@ -1,3 +1,4 @@
+from models.projet import Projet
 import customtkinter as ctk
 
 class FormProjetWidget(ctk.CTkFrame):
@@ -55,7 +56,7 @@ class FormProjetWidget(ctk.CTkFrame):
             return
 
         # Appeler le callback pour ajouter un projet
-        self.add_project_callback("", name, description)  # Ajouter le rôle comme paramètre
+        self.add_project_callback(Projet(nom=name, description=description, users=[]))  # Ajouter le rôle comme paramètre
 
         # Effacer les champs après l'ajout
         self.name_entry.delete(0, ctk.END)

@@ -21,7 +21,7 @@ class ProjectPage(ctk.CTkFrame):
         self.grid_columnconfigure(1, weight=1, minsize=400)  # Colonne de droite (liste des projets)
         self.grid_rowconfigure(0, weight=1)  # Ligne 1 (formulaire et liste de projets)
         self.grid_rowconfigure(1, weight=0, minsize=40)  # Ligne 2 (boutons en bas)
-
+        self.user_form = None
         # Liste pour les widgets de projet
         self.project_widgets = []
 
@@ -55,19 +55,19 @@ class ProjectPage(ctk.CTkFrame):
         """
         form_widget = FormProjetWidget(self, self.add_project)
         form_widget.grid(row=0, column=0, sticky="nsew", padx=20, pady=(20, 10))  # Formulaire à gauche
-    def add_project(self, project_id, name, description):
+    def add_project(self, projet):
         """
         Ajoute un widget projet dans la liste.
         """
+        self.projectService.ajouter_projet(projet)
         projectWidget = ProjectWidget(
             parent=self.project_list_frame,
-            project_id= project_id,
-            project_name=name,
-            project_description=description,
+            project_id= projet.id,
+            project_name=projet.nom,
+            project_description=projet.description,
             delete_callback=self.remove_project,
             add_user_project_callback=self.add_user_project
         )
-        self.projectService.ajouter_projet(Projet(nom=name, description=description, users=[]))
         projectWidget.pack(fill="x", padx=10, pady=5)
 
         # Créer un séparateur avec couleur
@@ -102,9 +102,8 @@ class ProjectPage(ctk.CTkFrame):
         Liste les projets existants.
         """
         print("Liste les projets existants")
-        projects = self.projectService.lister_projets()
+        projects = self.projectService.getProjects()
         for p in projects:
-            print(p.id)
             projectWidget = ProjectWidget(
                 parent=self.project_list_frame,
                 project_id= p.id,
@@ -134,8 +133,9 @@ class ProjectPage(ctk.CTkFrame):
         """
         Ouvre un formulaire pour ajouter un utilisateur à un projet spécifique.
         """
-        user_form = UserFormWidget(self, projectWidget, self.add_user_to_project)
-        user_form.grab_set()  # Rend la fenêtre modale
+        self.user_form = UserFormWidget(self, projectWidget, self.add_user_to_project)
+        
+        self.user_form.grab_set()  # Rend la fenêtre modale
         # self.show_user_form(projectWidget)
 
         
@@ -154,21 +154,21 @@ class ProjectPage(ctk.CTkFrame):
         # Masquer le snackbar après 3 secondes
         self.after(3000, snackbar.destroy)
 
-    def add_user_to_project(self, projectWidget, name, email, role, form_frame):
+    def add_user_to_project(self, projectWidget, user):
         """
         Ajoute un utilisateur au projet après soumission du formulaire.
         """
-        if name and email:
+        if user:
             # Ici, vous pouvez ajouter la logique pour lier l'utilisateur au projet
-            print(f"Utilisateur ajouté : {name} ({email}) {role} au projet {projectWidget.project_id}")
-            user_save = User(nom=name, email=email, role=role)
-            self.userService.ajouter_user(user_save)
-            print(f"{user_save.id}")
-            self.projectService.ajouter_user_au_projet(projectWidget.project_id,user_save.id)
+            print(f"Utilisateur ajouté : {user.nom} ({user.email}) {user.role} au projet {projectWidget.project_id}")
+            self.userService.ajouter_user(user)
+            print(f"{user.id}")
+            self.projectService.ajouter_user_au_projet(projectWidget.project_id,user.id)
             # Fermer le formulaire après l'ajout
-            form_frame.destroy()
+            self.user_form.destroy()
 
             # Afficher un snackbar pour confirmer l'ajout
-            self.show_snackbar(f"L'utilisateur '{name}' a été ajouté avec succès.")
+            self.show_snackbar(f"L'utilisateur '{user.nom}' a été ajouté avec succès.")
         else:
             self.show_snackbar("Veuillez remplir tous les champs.")
+        
