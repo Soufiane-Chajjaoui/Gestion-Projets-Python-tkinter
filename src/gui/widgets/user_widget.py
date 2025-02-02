@@ -1,12 +1,13 @@
-from PIL import Image, ImageTk
 from services.project_service import ProjectService
+from gui.pages.task_page import TaskPage
 import customtkinter as ctk
 
 class UserWidget(ctk.CTkFrame):
     """Widget personnalisé pour afficher un utilisateur"""
-    def __init__(self, parent, user, delete_icon, task_icon, delete_callback):
+    def __init__(self, parent, user=None, project=None, delete_icon=None, task_icon=None, delete_callback=None):
         super().__init__(parent)
         self.user = user
+        self.project = project
         self.delete_callback = delete_callback
         
         # Configuration grid
@@ -51,7 +52,7 @@ class UserWidget(ctk.CTkFrame):
             height=30,
             fg_color="transparent",
             hover_color="#ccccff",
-            command=self.on_add_task
+            command=self.to_task_page
         ).grid(row=0, column=3, sticky="e", padx=(5, 5))
 
     def on_delete(self):
@@ -59,5 +60,5 @@ class UserWidget(ctk.CTkFrame):
         if self.delete_callback:
             self.delete_callback(self)
             self.destroy()
-    def on_add_task(self):
-        
+    def to_task_page(self):
+        TaskPage(parent=self, user=self.user, project=self.project)
