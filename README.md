@@ -15,4 +15,19 @@ Créer un système de gestion de projets permettant de gérer des tâches, des u
 - **`README.md`** : Documentation expliquant le projet.
 - **`.gitignore`** : Définit les fichiers/dossiers à ignorer dans le contrôle de version.
 
-Si vous avez besoin d'un complément, faites-le-moi savoir ! 😊
+## Comment lancer l'application
+
+### Installation des dépendances
+
+Assurez-vous d'abord d'avoir installé toutes les bibliothèques requises. Pour ce faire, exécutez la commande suivante à la racine du projet :
+
+```bash
+pip install -r requirements.txt
+```
+### Exécution de l'application
+
+Rendez-vous dans le dossier `src` et exécutez la commande suivante pour lancer l'application :
+
+```bash
+python main.py
+```
